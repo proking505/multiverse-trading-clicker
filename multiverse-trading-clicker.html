@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiverse Trading Clicker</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #030712;
+    --bg2: #0a0f1e;
+    --bg3: #0f1729;
+    --panel: #0d1526;
+    --panel2: #111e35;
+    --border: #1a2d4a;
+    --border2: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b2b;
+    --accent3: #7c3aed;
+    --gold: #fbbf24;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --glow: 0 0 20px rgba(0,212,255,0.3);
+    --glow2: 0 0 20px rgba(255,107,43,0.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* STARFIELD */
+  #starfield {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    pointer-events:none; z-index:0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(0,212,255,0.05) 0%, transparent 50%),
+                var(--bg);
+  }
+  .star {
+    position:absolute; background:#fff; border-radius:50%;
+    animation: twinkle var(--d) ease-in-out infinite alternate;
+  }
+  @keyframes twinkle { from{opacity:0.1;} to{opacity:0.9;} }
+
+  /* CLICK PARTICLES */
+  .particle {
+    position:fixed; pointer-events:none; z-index:9999;
+    font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700;
+    color: var(--gold); text-shadow: 0 0 10px var(--gold);
+    animation: floatUp 1s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0%{opacity:1;transform:translateY(0) scale(1);}
+    100%{opacity:0;transform:translateY(-80px) scale(0.5);}
+  }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:100;
+    background: rgba(3,7,18,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display:flex; align-items:center; gap:8px;
+    overflow-x:auto;
+  }
+  .nav-logo {
+    font-family:'Orbitron',sans-serif; font-size:16px; font-weight:900;
+    color: var(--accent); text-shadow: var(--glow);
+    white-space:nowrap; padding:16px 16px 16px 0;
+    border-right:1px solid var(--border); margin-right:8px;
+  }
+  .nav-logo span { color: var(--accent2); }
+  nav button {
+    background:none; border:none; color:var(--text2);
+    font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:600;
+    padding:16px 14px; cursor:pointer; white-space:nowrap;
+    letter-spacing:0.05em; text-transform:uppercase;
+    border-bottom:2px solid transparent; transition:all 0.2s;
+  }
+  nav button:hover, nav button.active {
+    color:var(--accent); border-bottom-color:var(--accent);
+  }
+  .nav-right {
+    margin-left:auto; display:flex; align-items:center; gap:12px;
+    padding-left:16px;
+  }
+  .wealth-display {
+    font-family:'Share Tech Mono',monospace; font-size:13px;
+    color:var(--gold); white-space:nowrap;
+    background: rgba(251,191,36,0.08);
+    border:1px solid rgba(251,191,36,0.2);
+    padding:6px 12px; border-radius:4px;
+  }
+
+  /* SECTIONS */
+  .section { display:none; padding:24px; max-width:1400px; margin:0 auto; position:relative; z-index:1; }
+  .section.active { display:block; }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .grid-auto { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  @media(max-width:900px) {
+    .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; }
+  }
+
+  /* PANEL */
+  .panel {
+    background: var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .panel::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity:0.4;
+  }
+  .panel.hot::before { background: linear-gradient(90deg, transparent, var(--accent2), transparent); opacity:0.8; }
+  .panel.warn::before { background: linear-gradient(90deg, transparent, var(--red), transparent); opacity:0.8; }
+  .panel-title {
+    font-family:'Orbitron',sans-serif; font-size:11px;
+    letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--text3); margin-bottom:12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .panel-title .dot {
+    width:6px; height:6px; border-radius:50%;
+    background:var(--accent); box-shadow:0 0 6px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .panel-title .dot.orange { background:var(--accent2); box-shadow:0 0 6px var(--accent2); }
+  .panel-title .dot.red { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .panel-title .dot.gold { background:var(--gold); box-shadow:0 0 6px var(--gold); }
+  .panel-title .dot.green { background:var(--green); box-shadow:0 0 6px var(--green); }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.5);opacity:0.6;} }
+
+  /* BIG NUMBERS */
+  .big-num {
+    font-family:'Orbitron',sans-serif; font-size:28px; font-weight:900;
+    line-height:1; margin-bottom:4px;
+  }
+  .big-num.accent { color:var(--accent); text-shadow:var(--glow); }
+  .big-num.gold { color:var(--gold); text-shadow:0 0 20px rgba(251,191,36,0.4); }
+  .big-num.green { color:var(--green); }
+  .big-num.red { color:var(--red); }
+  .big-num.orange { color:var(--accent2); text-shadow:var(--glow2); }
+  .sub { font-size:13px; color:var(--text3); font-family:'Rajdhani',sans-serif; }
+
+  /* PAGE HEADER */
+  .page-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:24px; padding-bottom:16px;
+    border-bottom:1px solid var(--border);
+  }
+  .page-header h1 {
+    font-family:'Orbitron',sans-serif; font-size:22px; font-weight:900;
+    color:var(--accent); text-shadow:var(--glow);
+  }
+  .page-header p { color:var(--text2); font-size:14px; margin-top:4px; }
+  .badge {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:4px 10px; border-radius:4px; font-size:12px; font-weight:700;
+    letter-spacing:0.05em;
+  }
+  .badge.live { background:rgba(239,68,68,0.15); color:var(--red); border:1px solid rgba(239,68,68,0.3); }
+  .badge.live::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--red); animation:pulse 1s infinite; }
+
+  /* ============================
+     SECTION 1: CLICKER GAME
+     ============================ */
+  .clicker-layout {
+    display:grid; grid-template-columns:1fr 340px 1fr; gap:16px; align-items:start;
+  }
+  @media(max-width:1100px) { .clicker-layout { grid-template-columns:1fr; } }
+
+  .clicker-center { display:flex; flex-direction:column; align-items:center; gap:16px; }
+
+  #clickBtn {
+    width:200px; height:200px; border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #1a3a5c, #0a1829);
+    border: 3px solid var(--accent);
+    box-shadow: 0 0 30px rgba(0,212,255,0.3), 0 0 60px rgba(0,212,255,0.1), inset 0 0 30px rgba(0,212,255,0.1);
+    cursor:pointer; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700;
+    color:var(--accent); letter-spacing:0.1em; text-align:center;
+    transition: all 0.1s; position:relative; overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  }
+  #clickBtn::after {
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.2) 0%, transparent 70%);
+    opacity:0; transition:opacity 0.2s;
+  }
+  #clickBtn:hover::after { opacity:1; }
+  #clickBtn:active { transform:scale(0.94); box-shadow:0 0 15px rgba(0,212,255,0.4), inset 0 0 20px rgba(0,212,255,0.2); }
+  #clickBtn .click-icon { font-size:48px; }
+  #clickBtn .click-label { font-size:11px; letter-spacing:0.15em; }
+
+  .resource-bar {
+    width:100%; background:var(--panel); border:1px solid var(--border);
+    border-radius:6px; padding:12px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .resource-bar .label { font-size:12px; color:var(--text3); letter-spacing:0.1em; }
+  .resource-bar .val { font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--gold); }
+
+  .upgrades-panel { height:500px; overflow-y:auto; }
+  .upgrades-panel::-webkit-scrollbar { width:4px; }
+  .upgrades-panel::-webkit-scrollbar-track { background:var(--bg); }
+  .upgrades-panel::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+  .upgrade-item {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 12px; border-radius:6px;
+    background:var(--panel2); border:1px solid var(--border);
+    margin-bottom:8px; cursor:pointer; transition:all 0.2s;
+    position:relative; overflow:hidden;
+  }
+  .upgrade-item:hover { border-color:var(--accent); background:rgba(0,212,255,0.05); }
+  .upgrade-item.owned { border-color:rgba(16,185,129,0.3); }
+  .upgrade-item.locked { opacity:0.5; cursor:not-allowed; }
+  .upgrade-item .u-icon { font-size:24px; flex-shrink:0; }
+  .upgrade-item .u-info { flex:1; }
+  .upgrade-item .u-name { font-size:14px; font-weight:700; color:var(--text); }
+  .upgrade-item .u-desc { font-size:11px; color:var(--text3); }
+  .upgrade-item .u-cost { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--gold); white-space:nowrap; }
+  .upgrade-item .u-count {
+    position:absolute; top:4px; right:4px;
+    background:var(--green); color:#fff; font-size:9px; font-weight:700;
+    padding:1px 5px; border-radius:3px;
+  }
+
+  /* Progress bars */
+  .prog-bar { width:100%; height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .prog-bar .fill { height:100%; border-radius:3px; transition:width 0.5s; }
+  .prog-bar .fill.blue { background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+  .prog-bar .fill.orange { background: linear-gradient(90deg, var(--accent2), var(--gold)); }
+  .prog-bar .fill.green { background: linear-gradient(90deg, #059669, var(--green)); }
+  .prog-bar .fill.red { background: linear-gradient(90deg, #991b1b, var(--red)); }
+
+  /* Rebirth button */
+  #rebirthBtn {
+    width:100%; padding:14px; border-radius:6px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.05));
+    border:1px solid rgba(124,58,237,0.5);
+    color:var(--accent3); font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700;
+    letter-spacing:0.1em; cursor:pointer; transition:all 0.3s;
+    text-shadow: 0 0 10px var(--accent3);
+  }
+  #rebirthBtn:hover {
+    background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(124,58,237,0.1));
+    box-shadow: 0 0 20px rgba(124,58,237,0.3);
+  }
+
+  /* Universe cards */
+  .universe-card {
+    background:var(--panel2); border:1px solid var(--border);
+    border-radius:8px; padding:16px; cursor:pointer; transition:all 0.2s;
+    position:relative; overflow:hidden;
+  }
+  .universe-card::before {
+    content:''; position:absolute; top:0; left:0; bottom:0; width:3px;
+    background:var(--u-color);
+  }
+  .universe-card:hover { border-color:var(--u-color); transform:translateY(-2px); box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+  .universe-card.selected { border-color:var(--u-color); background:rgba(0,212,255,0.05); }
+  .universe-card .u-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .universe-card .u-title { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; }
+  .universe-card .u-badge {
+    font-size:10px; padding:2px 8px; border-radius:3px; font-weight:700;
+  }
+  .universe-card .u-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .universe-card .u-stat { }
+  .universe-card .u-stat .s-val { font-family:'Share Tech Mono',monospace; font-size:13px; }
+  .universe-card .u-stat .s-key { font-size:10px; color:var(--text3); }
+
+  /* Collapse timer */
+  .collapse-timer {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);
+    border-radius:6px; margin-bottom:8px;
+  }
+  .collapse-timer .t-name { font-size:13px; font-weight:600; }
+  .collapse-timer .t-time { font-family:'Share Tech Mono',monospace; font-size:14px; color:var(--red); }
+
+  /* ============================
+     SECTION 2: DASHBOARD
+     ============================ */
+  .dashboard-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-bottom:16px;
+  }
+  @media(max-width:1000px) { .dashboard-grid { grid-template-columns:repeat(2,1fr); } }
+
+  /* ============================
+     SECTION 3: LEADERBOARD
+     ============================ */
+  .lb-row {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 14px; border-radius:6px;
+    background:var(--panel2); border:1px solid var(--border);
+    margin-bottom:6px; transition:background 0.2s;
+  }
+  .lb-row:hover { background:rgba(0,212,255,0.04); }
+  .lb-row .rank {
+    font-family:'Orbitron',sans-serif; font-size:14px; font-weight:900;
+    width:28px; text-align:center; flex-shrink:0;
+  }
+  .lb-row .rank.r1 { color:var(--gold); text-shadow:0 0 10px var(--gold); }
+  .lb-row .rank.r2 { color:#94a3b8; }
+  .lb-row .rank.r3 { color:#c97c40; }
+  .lb-row .player { flex:1; }
+  .lb-row .player .p-name { font-size:15px; font-weight:700; }
+  .lb-row .player .p-sub { font-size:11px; color:var(--text3); }
+  .lb-row .amount { font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--gold); }
+  .lb-row .crown { font-size:16px; }
+
+  /* ============================
+     SECTION 4: EVENTS
+     ============================ */
+  .event-card {
+    background:var(--panel2); border:1px solid var(--border);
+    border-radius:8px; padding:20px;
+    border-left:4px solid var(--e-color);
+    transition:all 0.2s;
+  }
+  .event-card:hover { transform:translateX(4px); }
+  .event-card .e-type { font-size:11px; font-weight:700; letter-spacing:0.15em; color:var(--e-color); text-transform:uppercase; margin-bottom:8px; }
+  .event-card .e-title { font-family:'Orbitron',sans-serif; font-size:15px; font-weight:700; margin-bottom:6px; }
+  .event-card .e-desc { font-size:13px; color:var(--text2); margin-bottom:12px; }
+  .event-card .e-timer { display:flex; align-items:center; gap:8px; }
+  .event-card .e-timer .t-label { font-size:11px; color:var(--text3); }
+  .event-card .e-timer .t-val { font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--e-color); }
+
+  /* Vote bar */
+  .vote-option {
+    background:var(--panel2); border:1px solid var(--border);
+    border-radius:6px; padding:12px 16px; margin-bottom:8px;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .vote-option:hover { border-color:var(--accent); }
+  .vote-option.voted { border-color:var(--green); }
+  .vote-option .v-top { display:flex; justify-content:space-between; margin-bottom:6px; }
+  .vote-option .v-name { font-size:14px; font-weight:600; }
+  .vote-option .v-pct { font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--accent); }
+
+  /* ============================
+     SECTION 5: CHARTS
+     ============================ */
+  .chart-container { position:relative; height:220px; }
+
+  /* ============================
+     SECTION 6: DAILY REWARDS
+     ============================ */
+  .reward-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:16px; }
+  @media(max-width:700px) { .reward-grid { grid-template-columns:repeat(4,1fr); } }
+  .day-box {
+    aspect-ratio:1; border-radius:8px; border:1px solid var(--border);
+    background:var(--panel2); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:4px; cursor:default;
+    transition:all 0.2s;
+  }
+  .day-box .d-num { font-size:10px; color:var(--text3); }
+  .day-box .d-icon { font-size:22px; }
+  .day-box .d-val { font-size:11px; color:var(--gold); font-weight:700; }
+  .day-box.claimed { background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.3); }
+  .day-box.today { border-color:var(--gold); box-shadow:0 0 15px rgba(251,191,36,0.2); cursor:pointer; animation:glowPulse 2s ease-in-out infinite; }
+  .day-box.future { opacity:0.4; }
+  @keyframes glowPulse { 0%,100%{box-shadow:0 0 10px rgba(251,191,36,0.2);} 50%{box-shadow:0 0 25px rgba(251,191,36,0.5);} }
+
+  /* Spin wheel */
+  #spinCanvas { border-radius:50%; border:3px solid var(--border2); }
+  .spin-btn {
+    padding:12px 32px; border-radius:6px;
+    background: linear-gradient(135deg, var(--accent2), #e05020);
+    border:none; color:#fff; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700;
+    letter-spacing:0.1em; cursor:pointer; transition:all 0.3s;
+    box-shadow: 0 4px 20px rgba(255,107,43,0.3);
+  }
+  .spin-btn:hover { transform:translateY(-2px); box-shadow:0 6px 30px rgba(255,107,43,0.5); }
+  .spin-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  /* Promo code */
+  .promo-input {
+    width:100%; background:var(--bg); border:1px solid var(--border2);
+    border-radius:6px; padding:12px 16px; color:var(--text);
+    font-family:'Share Tech Mono',monospace; font-size:16px; letter-spacing:0.1em;
+    outline:none; transition:border-color 0.2s;
+  }
+  .promo-input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(0,212,255,0.1); }
+  .promo-btn {
+    padding:12px 24px; border-radius:6px;
+    background: linear-gradient(135deg, var(--accent), #0099cc);
+    border:none; color:#000; font-family:'Orbitron',sans-serif; font-size:12px; font-weight:900;
+    letter-spacing:0.1em; cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  }
+  .promo-btn:hover { opacity:0.85; }
+
+  /* ============================
+     SECTION 7: HISTORY
+     ============================ */
+  .history-event {
+    display:flex; gap:16px; padding:14px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .history-event .h-date { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text3); min-width:80px; padding-top:2px; }
+  .history-event .h-icon { font-size:20px; flex-shrink:0; }
+  .history-event .h-content { }
+  .history-event .h-title { font-size:14px; font-weight:700; margin-bottom:2px; }
+  .history-event .h-detail { font-size:12px; color:var(--text2); }
+  .history-event .h-impact { font-size:11px; color:var(--red); margin-top:4px; }
+
+  /* ============================
+     SECTION 8: PROFILES
+     ============================ */
+  .profile-search {
+    display:flex; gap:12px; margin-bottom:20px;
+  }
+  .profile-card {
+    background: linear-gradient(135deg, var(--panel2), var(--panel));
+    border:1px solid var(--border2); border-radius:12px; padding:24px;
+  }
+  .profile-avatar {
+    width:80px; height:80px; border-radius:50%;
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    display:flex; align-items:center; justify-content:center;
+    font-size:36px; margin-bottom:16px;
+    box-shadow: 0 0 30px rgba(0,212,255,0.3);
+  }
+  .profile-name { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900; margin-bottom:4px; }
+  .profile-title { font-size:13px; color:var(--accent2); margin-bottom:16px; }
+  .stat-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+  .stat-row .s-key { font-size:13px; color:var(--text3); }
+  .stat-row .s-val { font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--text); }
+  .achievement {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:20px; font-size:12px; font-weight:700;
+    margin:4px; border:1px solid var(--a-border);
+    background:var(--a-bg); color:var(--a-color);
+  }
+
+  /* ============================
+     SECTION 9: STRATEGY
+     ============================ */
+  .strategy-card {
+    background:var(--panel2); border:1px solid var(--border);
+    border-radius:8px; padding:20px;
+    transition:all 0.2s;
+  }
+  .strategy-card:hover { border-color:var(--accent3); }
+  .strategy-card .s-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .strategy-card .s-title { font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; }
+  .strategy-card .s-author { font-size:11px; color:var(--text3); margin-top:2px; }
+  .strategy-card .s-body { font-size:13px; color:var(--text2); line-height:1.7; }
+  .strategy-card .s-footer { display:flex; align-items:center; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .strategy-card .s-likes { font-size:12px; color:var(--text3); cursor:pointer; }
+  .strategy-card .s-likes:hover { color:var(--red); }
+  .strategy-card .s-tag { font-size:10px; padding:2px 8px; background:rgba(124,58,237,0.15); color:var(--accent3); border-radius:3px; font-weight:700; }
+
+  /* Toast */
+  #toast {
+    position:fixed; bottom:24px; right:24px; z-index:9999;
+    background:var(--panel2); border:1px solid var(--border2);
+    border-radius:8px; padding:14px 20px;
+    display:flex; align-items:center; gap:12px;
+    box-shadow:0 4px 30px rgba(0,0,0,0.5);
+    transform:translateY(100px); opacity:0; transition:all 0.3s;
+    max-width:320px;
+  }
+  #toast.show { transform:translateY(0); opacity:1; }
+  #toast .t-icon { font-size:20px; }
+  #toast .t-text { font-size:14px; font-weight:600; }
+  #toast .t-sub { font-size:12px; color:var(--text3); }
+
+  /* Marquee */
+  .marquee-wrap { overflow:hidden; background:rgba(0,212,255,0.05); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .marquee { display:flex; gap:60px; padding:8px 0; animation:scroll 30s linear infinite; white-space:nowrap; }
+  .marquee-item { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:8px; }
+  .marquee-item .m-up { color:var(--green); }
+  .marquee-item .m-down { color:var(--red); }
+  @keyframes scroll { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+  /* Notification badge */
+  .notif { 
+    display:inline-block; background:var(--red); color:#fff; font-size:9px; font-weight:900;
+    border-radius:50%; width:16px; height:16px; line-height:16px; text-align:center;
+    vertical-align:super; margin-left:2px;
+  }
+
+  /* Flash animation */
+  @keyframes flashIn { 0%{background:rgba(0,212,255,0.3);} 100%{background:transparent;} }
+  .flash { animation:flashIn 0.5s ease-out; }
+
+  .section-tabs {
+    display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;
+  }
+  .tab-btn {
+    padding:6px 16px; border-radius:4px; font-size:12px; font-weight:700;
+    letter-spacing:0.05em; border:1px solid var(--border); cursor:pointer;
+    background:var(--panel2); color:var(--text2); transition:all 0.2s;
+  }
+  .tab-btn.active { background:rgba(0,212,255,0.1); border-color:var(--accent); color:var(--accent); }
+</style>
+</head>
+<body>
+<div id="starfield"></div>
+
+<!-- TICKER -->
+<div class="marquee-wrap">
+  <div class="marquee" id="ticker"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">MULTI<span>VERSE</span> TRADER</div>
+  <button class="active" onclick="showSection('clicker')">⚡ Play</button>
+  <button onclick="showSection('dashboard')">🌌 Dashboard <span class="notif">!</span></button>
+  <button onclick="showSection('leaderboard')">🏆 Leaderboard</button>
+  <button onclick="showSection('events')">🎯 Events</button>
+  <button onclick="showSection('charts')">📊 Charts</button>
+  <button onclick="showSection('rewards')">🎁 Rewards <span id="rewardNotif" class="notif" style="display:none">1</span></button>
+  <button onclick="showSection('history')">🌌 Archive</button>
+  <button onclick="showSection('profiles')">💬 Profiles</button>
+  <button onclick="showSection('strategy')">🧠 Strategy</button>
+  <div class="nav-right">
+    <div class="wealth-display">💰 <span id="navWealth">0</span> EC</div>
+  </div>
+</nav>
+
+<!-- ========== SECTION: CLICKER ========== -->
+<div id="sec-clicker" class="section active">
+  <div class="page-header">
+    <div>
+      <h1>⚡ MULTIVERSE TRADING CLICKER</h1>
+      <p>Click to harvest Energy Crystals. Upgrade your operation. Rebirth for permanent power.</p>
+    </div>
+    <span class="badge live">● LIVE</span>
+  </div>
+
+  <div class="clicker-layout">
+    <!-- LEFT: UPGRADES -->
+    <div>
+      <div class="panel-title" style="margin-bottom:12px;"><span class="dot"></span> UPGRADES</div>
+      <div class="upgrades-panel" id="upgradeList"></div>
+    </div>
+
+    <!-- CENTER: CLICKER -->
+    <div class="clicker-center">
+      <div class="panel" style="width:100%;text-align:center;padding:16px;">
+        <div style="font-size:11px;color:var(--text3);letter-spacing:0.1em;margin-bottom:4px;">ENERGY CRYSTALS</div>
+        <div class="big-num gold" id="ecDisplay">0</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;" id="perSecDisplay">+0/sec</div>
+      </div>
+
+      <button id="clickBtn" onclick="doClick(event)">
+        <span class="click-icon">💎</span>
+        <span class="click-label">HARVEST</span>
+      </button>
+
+      <div class="resource-bar">
+        <span class="label">CLICK POWER</span>
+        <span class="val" id="clickPowerDisplay">×1</span>
+      </div>
+      <div class="resource-bar">
+        <span class="label">REBIRTH BONUS</span>
+        <span class="val" id="rebirthBonusDisplay">×1.0</span>
+      </div>
+      <div class="resource-bar">
+        <span class="label">UNIVERSE</span>
+        <span class="val" id="currentUniverseDisplay">ALPHA</span>
+      </div>
+
+      <div style="width:100%;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+          <span>REBIRTH PROGRESS</span>
+          <span id="rebirthPct">0%</span>
+        </div>
+        <div class="prog-bar"><div class="fill blue" id="rebirthBar" style="width:0%"></div></div>
+      </div>
+
+      <button id="rebirthBtn" onclick="doRebirth()">⭕ REBIRTH — Reset for ×<span id="rebirthMult">1.5</span> permanent bonus</button>
+
+      <div class="panel" style="width:100%;">
+        <div class="panel-title"><span class="dot green"></span>STATS</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><div class="sub">Total Clicks</div><div style="font-family:'Share Tech Mono',monospace;font-size:14px;" id="totalClicks">0</div></div>
+          <div><div class="sub">Rebirths</div><div style="font-family:'Share Tech Mono',monospace;font-size:14px;" id="rebirthCount">0</div></div>
+          <div><div class="sub">All-Time EC</div><div style="font-family:'Share Tech Mono',monospace;font-size:14px;" id="allTimeEC">0</div></div>
+          <div><div class="sub">Prestige Score</div><div style="font-family:'Share Tech Mono',monospace;font-size:14px;" id="prestigeScore">0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: UNIVERSES -->
+    <div>
+      <div class="panel-title" style="margin-bottom:12px;"><span class="dot orange"></span> ACTIVE UNIVERSES</div>
+      <div id="universeList"></div>
+      <div class="panel-title" style="margin:16px 0 12px;"><span class="dot red"></span> COLLAPSE TIMERS</div>
+      <div id="collapseTimers"></div>
+      <div class="panel" style="margin-top:16px;">
+        <div class="panel-title"><span class="dot gold"></span>🔥 HOT UNIVERSE</div>
+        <div id="hotUniverse"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION: DASHBOARD ========== -->
+<div id="sec-dashboard" class="section">
+  <div class="page-header">
+    <div>
+      <h1>🌌 LIVE UNIVERSE DASHBOARD</h1>
+      <p>Real-time multiverse economic data. Updated every 5 seconds.</p>
+    </div>
+    <span class="badge live">● LIVE</span>
+  </div>
+
+  <div class="dashboard-grid" id="dashStats"></div>
+
+  <div class="grid-2">
+    <div>
+      <div class="panel-title" style="margin-bottom:12px;"><span class="dot"></span>UNIVERSE STATUS MATRIX</div>
+      <div id="dashUniverses"></div>
+    </div>
+    <div>
+      <div class="panel-title" style="margin-bottom:12px;"><span class="dot orange"></span>MARKET FEED</div>
+      <div id="marketFeed" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION: LEADERBOARD ========== -->
+<div id="sec-leaderboard" class="section">
+  <div class="page-header">
+    <div><h1>🏆 GLOBAL LEADERBOARD</h1><p>The richest traders across all universes.</p></div>
+    <div style="font-size:12px;color:var(--text3);text-align:right;">
+      <div>Weekly reset: <span id="weeklyReset" style="color:var(--accent);font-family:'Share Tech Mono',monospace;">6d 23h</span></div>
+      <div style="margin-top:4px;">Monthly champ: <span style="color:var(--gold);">🥇 NebulaTycoon</span></div>
+    </div>
+  </div>
+
+  <div class="section-tabs">
+    <button class="tab-btn active" onclick="lbTab('overall',this)">🌐 Overall Rich</button>
+    <button class="tab-btn" onclick="lbTab('universe',this)">🌍 Per Universe</button>
+    <button class="tab-btn" onclick="lbTab('weekly',this)">📅 Best This Week</button>
+    <button class="tab-btn" onclick="lbTab('rebirth',this)">⭕ Fastest Rebirth</button>
+  </div>
+
+  <div id="lbContent"></div>
+</div>
+
+<!-- ========== SECTION: EVENTS ========== -->
+<div id="sec-events" class="section">
+  <div class="page-header">
+    <div><h1>🎯 UPCOMING EVENTS</h1><p>Don't miss these — they change everything.</p></div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:24px;">
+    <div id="eventList"></div>
+    <div>
+      <div class="panel">
+        <div class="panel-title"><span class="dot gold"></span>🧨 COMMUNITY VOTE — What opens next?</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Players decide which universe unlocks this weekend. Your vote = your power.</p>
+        <div id="voteOptions"></div>
+        <div style="margin-top:12px;font-size:11px;color:var(--text3);text-align:center;" id="voteStatus">Click to vote • <span id="totalVotes">0</span> votes cast</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION: CHARTS ========== -->
+<div id="sec-charts" class="section">
+  <div class="page-header">
+    <div><h1>📊 ECONOMIC CHARTS</h1><p>Live market data for real strategy.</p></div>
+  </div>
+  <div class="grid-3">
+    <div class="panel">
+      <div class="panel-title"><span class="dot"></span>ENERGY VALUE OVER TIME</div>
+      <div class="chart-container"><canvas id="energyChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="dot orange"></span>UNIVERSE STABILITY</div>
+      <div class="chart-container"><canvas id="stabilityChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="dot green"></span>TRADE VOLUME</div>
+      <div class="chart-container"><canvas id="tradeChart"></canvas></div>
+    </div>
+  </div>
+  <div style="margin-top:16px;" class="grid-2">
+    <div class="panel">
+      <div class="panel-title"><span class="dot gold"></span>INFLATION RATE BY UNIVERSE</div>
+      <div class="chart-container"><canvas id="inflationChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="dot red"></span>CRASH PROBABILITY INDEX</div>
+      <div class="chart-container"><canvas id="crashChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION: REWARDS ========== -->
+<div id="sec-rewards" class="section">
+  <div class="page-header">
+    <div><h1>🎁 DAILY REWARDS</h1><p>Check in daily. Every visit rewards you.</p></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-title"><span class="dot gold"></span>7-DAY STREAK CALENDAR</div>
+      <div class="reward-grid" id="rewardCalendar"></div>
+      <button id="claimDayBtn" class="spin-btn" style="width:100%;background:linear-gradient(135deg,var(--gold),#e09a10);" onclick="claimDaily()">⭐ CLAIM TODAY'S REWARD</button>
+      <div id="claimMsg" style="text-align:center;margin-top:8px;font-size:13px;color:var(--text3);"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="dot orange"></span>🎡 BONUS SPIN WHEEL</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+        <div style="position:relative;">
+          <canvas id="spinCanvas" width="240" height="240"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:var(--bg2);border:2px solid var(--border2);pointer-events:none;"></div>
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:20px;">▼</div>
+        </div>
+        <button class="spin-btn" id="spinBtn" onclick="spinWheel()">🎡 SPIN — 1 free/day</button>
+        <div id="spinResult" style="font-size:14px;color:var(--gold);text-align:center;min-height:20px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title"><span class="dot"></span>🔑 SECRET PROMO CODE</div>
+    <div style="display:flex;gap:12px;margin-top:4px;">
+      <input type="text" class="promo-input" id="promoInput" placeholder="ENTER CODE..." onkeydown="if(event.key==='Enter')redeemPromo()">
+      <button class="promo-btn" onclick="redeemPromo()">REDEEM</button>
+    </div>
+    <div id="promoMsg" style="margin-top:8px;font-size:13px;min-height:20px;"></div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text3);">💡 Hint: Follow us on social media for secret codes! Try <code style="color:var(--accent);">LAUNCH2024</code></div>
+  </div>
+</div>
+
+<!-- ========== SECTION: HISTORY ========== -->
+<div id="sec-history" class="section">
+  <div class="page-header">
+    <div><h1>🌌 UNIVERSE HISTORY ARCHIVE</h1><p>Every crash. Every legend. Preserved forever.</p></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-title"><span class="dot red"></span>NOTABLE UNIVERSE EVENTS</div>
+      <div id="historyLog"></div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-title"><span class="dot gold"></span>🏛️ ALL-TIME TOP 10 RICHEST</div>
+        <div id="allTimeRich"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span class="dot orange"></span>BIGGEST MARKET MANIPULATIONS</div>
+        <div id="manipLog"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION: PROFILES ========== -->
+<div id="sec-profiles" class="section">
+  <div class="page-header">
+    <div><h1>💬 PLAYER PROFILES</h1><p>Your identity. Your legacy.</p></div>
+  </div>
+  <div class="profile-search">
+    <input type="text" class="promo-input" id="profileSearch" placeholder="Search player name..." style="max-width:300px;">
+    <button class="promo-btn" onclick="searchProfile()">SEARCH</button>
+  </div>
+  <div class="grid-2">
+    <div class="panel profile-card" id="profileCard"></div>
+    <div>
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-title"><span class="dot"></span>ACHIEVEMENTS</div>
+        <div id="achievementList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span class="dot green"></span>TRADE HISTORY SNAPSHOT</div>
+        <div class="chart-container"><canvas id="profileChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION: STRATEGY ========== -->
+<div id="sec-strategy" class="section">
+  <div class="page-header">
+    <div><h1>🧠 STRATEGY HUB</h1><p>Community-driven. Player-written. Always meta.</p></div>
+  </div>
+  <div class="section-tabs">
+    <button class="tab-btn active" onclick="stTab('best',this)">🔥 Best This Week</button>
+    <button class="tab-btn" onclick="stTab('tips',this)">💡 Top Tips</button>
+    <button class="tab-btn" onclick="stTab('guides',this)">📖 Guides</button>
+  </div>
+  <div class="grid-auto" id="strategyContent"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast">
+  <span class="t-icon" id="toastIcon">✅</span>
+  <div><div class="t-text" id="toastText"></div><div class="t-sub" id="toastSub"></div></div>
+</div>
+
+<script>
+// ============================================================
+//  GAME STATE
+// ============================================================
+const SAVE_KEY = 'mtc_save_v1';
+let G = {
+  ec: 0, clickPower: 1, perSec: 0,
+  totalClicks: 0, rebirths: 0, rebirthMult: 1,
+  allTimeEC: 0, prestigeScore: 0,
+  currentUniverse: 'ALPHA',
+  upgrades: {},
+  lastSave: Date.now(),
+  dailyClaimed: false,
+  lastClaimDate: '',
+  spinUsed: false,
+  lastSpinDate: '',
+  votes: {},
+  promoUsed: [],
+  playerName: 'Traveler_' + Math.floor(Math.random()*9999)
+};
+
+function saveGame() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch(e){}
+}
+function loadGame() {
+  try {
+    const s = localStorage.getItem(SAVE_KEY);
+    if(s) { const d = JSON.parse(s); Object.assign(G, d); }
+  } catch(e){}
+}
+loadGame();
+
+// ============================================================
+//  STARFIELD
+// ============================================================
+const sf = document.getElementById('starfield');
+for(let i=0;i<120;i++){
+  const s=document.createElement('div');
+  s.className='star';
+  const sz=Math.random()*2+0.5;
+  s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+2).toFixed(1)}s;animation-delay:${(Math.random()*4).toFixed(1)}s`;
+  sf.appendChild(s);
+}
+
+// ============================================================
+//  UNIVERSES DATA
+// ============================================================
+const UNIVERSES = [
+  { id:'ALPHA',   name:'Alpha Prime',   icon:'🌍', color:'#00d4ff', mult:1.0,  stability:85, inflation:2.1,  resourceVal:1.0,  ring:'Stable' },
+  { id:'NEBULA',  name:'Nebula Arc',    icon:'💜', color:'#7c3aed', mult:1.8,  stability:62, inflation:5.4,  resourceVal:2.1,  ring:'Volatile' },
+  { id:'CHAOS',   name:'Chaos Rift',    icon:'🔴', color:'#ef4444', mult:3.2,  stability:34, inflation:12.7, resourceVal:4.5,  ring:'Dangerous' },
+  { id:'VOID',    name:'The Void',      icon:'⚫', color:'#6b7280', mult:0.6,  stability:95, inflation:0.3,  resourceVal:0.5,  ring:'Stable' },
+  { id:'SOLAR',   name:'Solar Nexus',   icon:'☀️', color:'#fbbf24', mult:2.4,  stability:71, inflation:7.2,  resourceVal:3.2,  ring:'Volatile' },
+  { id:'CRYSTAL', name:'Crystal Realm', icon:'💎', color:'#10b981', mult:1.5,  stability:78, inflation:3.8,  resourceVal:1.8,  ring:'Stable' },
+];
+
+let universeData = UNIVERSES.map(u => ({...u, collapseIn: Math.floor(Math.random()*7200)+600}));
+
+function getHotUniverse() {
+  return universeData.reduce((a,b) => b.resourceVal > a.resourceVal ? b : a);
+}
+
+// ============================================================
+//  UPGRADES
+// ============================================================
+const UPGRADES = [
+  { id:'basic_miner',    name:'Basic Miner',       icon:'⛏️', desc:'+1 click power',         cost:10,     owned:0, max:99, type:'click', val:1 },
+  { id:'quantum_drill',  name:'Quantum Drill',      icon:'🔩', desc:'+5 click power',         cost:100,    owned:0, max:50, type:'click', val:5 },
+  { id:'auto_click',     name:'Auto Clicker',       icon:'🤖', desc:'+0.5 EC/sec',            cost:50,     owned:0, max:99, type:'passive', val:0.5 },
+  { id:'energy_farm',    name:'Energy Farm',        icon:'⚡', desc:'+2 EC/sec',              cost:500,    owned:0, max:50, type:'passive', val:2 },
+  { id:'trade_bot',      name:'Trade Bot',          icon:'🦾', desc:'+10 EC/sec',             cost:2000,   owned:0, max:20, type:'passive', val:10 },
+  { id:'universe_gate',  name:'Universe Gate',      icon:'🌀', desc:'+50 EC/sec',             cost:10000,  owned:0, max:10, type:'passive', val:50 },
+  { id:'dark_matter',    name:'Dark Matter Core',   icon:'🌑', desc:'+200 EC/sec',            cost:50000,  owned:0, max:5,  type:'passive', val:200 },
+  { id:'multiverse_hub', name:'Multiverse Hub',     icon:'🌌', desc:'+1000 EC/sec',           cost:250000, owned:0, max:3,  type:'passive', val:1000 },
+  { id:'click_boost',    name:'Click Amplifier',    icon:'🔥', desc:'×2 all click power',     cost:1000,   owned:0, max:5,  type:'mult', val:2 },
+  { id:'crystal_pet',    name:'Crystal Pet 🐉',     icon:'🐉', desc:'×1.5 passive income',    cost:5000,   owned:0, max:3,  type:'petmult', val:1.5 },
+];
+
+function loadUpgradesFromSave() {
+  UPGRADES.forEach(u => { if(G.upgrades[u.id]) u.owned = G.upgrades[u.id]; });
+}
+loadUpgradesFromSave();
+
+function calcStats() {
+  let clickPow = 1, perSec = 0, clickMult = 1, petMult = 1;
+  UPGRADES.forEach(u => {
+    if(u.owned > 0) {
+      if(u.type==='click') clickPow += u.val * u.owned;
+      if(u.type==='passive') perSec += u.val * u.owned;
+      if(u.type==='mult') clickMult *= Math.pow(u.val, u.owned);
+      if(u.type==='petmult') petMult *= Math.pow(u.val, u.owned);
+    }
+  });
+  const uMult = (universeData.find(u=>u.id===G.currentUniverse)||universeData[0]).mult;
+  G.clickPower = Math.floor(clickPow * clickMult * G.rebirthMult * uMult);
+  G.perSec = perSec * petMult * G.rebirthMult * uMult;
+}
+calcStats();
+
+function buyUpgrade(id) {
+  const u = UPGRADES.find(x=>x.id===id);
+  if(!u || u.owned >= u.max) return;
+  const cost = Math.floor(u.cost * Math.pow(1.15, u.owned));
+  if(G.ec < cost) { showToast('❌','Not enough EC!',`Need ${fmt(cost)} EC`); return; }
+  G.ec -= cost;
+  u.owned++;
+  G.upgrades[u.id] = u.owned;
+  calcStats();
+  renderUpgrades();
+  updateDisplays();
+  showToast('✅', u.name + ' purchased!', `Now owned: ${u.owned}`);
+  saveGame();
+}
+
+// ============================================================
+//  CLICKER
+// ============================================================
+function doClick(e) {
+  const gain = G.clickPower;
+  G.ec += gain;
+  G.allTimeEC += gain;
+  G.totalClicks++;
+  updateDisplays();
+
+  // particle
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.textContent = '+' + fmt(gain) + ' EC';
+  p.style.left = (e.clientX - 30) + 'px';
+  p.style.top = (e.clientY - 10) + 'px';
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(), 1000);
+}
+
+// passive income
+setInterval(()=>{
+  if(G.perSec > 0) {
+    const gain = G.perSec / 20;
+    G.ec += gain;
+    G.allTimeEC += gain;
+    updateDisplays();
+  }
+}, 50);
+
+// autosave
+setInterval(()=>saveGame(), 5000);
+
+function doRebirth() {
+  if(G.ec < 100000) { showToast('⚠️','Too early!','Need 100,000 EC to rebirth'); return; }
+  const bonus = parseFloat(document.getElementById('rebirthMult').textContent);
+  G.rebirthMult *= bonus;
+  G.rebirths++;
+  G.prestigeScore += Math.floor(G.ec / 1000);
+  G.ec = 0;
+  UPGRADES.forEach(u => { u.owned = 0; G.upgrades[u.id] = 0; });
+  calcStats();
+  renderUpgrades();
+  updateDisplays();
+  showToast('⭕', 'REBIRTH!', `Permanent ×${G.rebirthMult.toFixed(1)} bonus active!`);
+  saveGame();
+}
+
+function fmt(n) {
+  n = Math.floor(n);
+  if(n>=1e12) return (n/1e12).toFixed(2)+'T';
+  if(n>=1e9)  return (n/1e9).toFixed(2)+'B';
+  if(n>=1e6)  return (n/1e6).toFixed(2)+'M';
+  if(n>=1e3)  return (n/1e3).toFixed(1)+'K';
+  return n.toString();
+}
+
+function updateDisplays() {
+  document.getElementById('ecDisplay').textContent = fmt(G.ec);
+  document.getElementById('navWealth').textContent = fmt(G.ec);
+  document.getElementById('perSecDisplay').textContent = '+' + fmt(G.perSec) + '/sec';
+  document.getElementById('clickPowerDisplay').textContent = '×' + fmt(G.clickPower);
+  document.getElementById('rebirthBonusDisplay').textContent = '×' + G.rebirthMult.toFixed(1);
+  document.getElementById('currentUniverseDisplay').textContent = G.currentUniverse;
+  document.getElementById('totalClicks').textContent = fmt(G.totalClicks);
+  document.getElementById('rebirthCount').textContent = G.rebirths;
+  document.getElementById('allTimeEC').textContent = fmt(G.allTimeEC);
+  document.getElementById('prestigeScore').textContent = fmt(G.prestigeScore);
+
+  const rebirthGoal = 100000;
+  const pct = Math.min(100, (G.ec / rebirthGoal * 100)).toFixed(1);
+  document.getElementById('rebirthBar').style.width = pct + '%';
+  document.getElementById('rebirthPct').textContent = pct + '%';
+
+  const nextBonus = (1.5 + G.rebirths * 0.1).toFixed(1);
+  document.getElementById('rebirthMult').textContent = nextBonus;
+}
+updateDisplays();
+
+// ============================================================
+//  RENDER UPGRADES
+// ============================================================
+function renderUpgrades() {
+  const el = document.getElementById('upgradeList');
+  el.innerHTML = UPGRADES.map(u => {
+    const cost = Math.floor(u.cost * Math.pow(1.15, u.owned));
+    const canBuy = G.ec >= cost && u.owned < u.max;
+    const maxed = u.owned >= u.max;
+    return `<div class="upgrade-item ${maxed?'owned':canBuy?'':'locked'}" onclick="${maxed?'':canBuy?`buyUpgrade('${u.id}')`:''}" style="${canBuy?'cursor:pointer':''}" title="${u.desc}">
+      <span class="u-icon">${u.icon}</span>
+      <div class="u-info">
+        <div class="u-name">${u.name}</div>
+        <div class="u-desc">${u.desc}</div>
+      </div>
+      <div class="u-cost">${maxed?'MAX':fmt(cost)+' EC'}</div>
+      ${u.owned>0?`<span class="u-count">${u.owned}</span>`:''}
+    </div>`;
+  }).join('');
+}
+renderUpgrades();
+
+// ============================================================
+//  RENDER UNIVERSES
+// ============================================================
+function renderUniverses() {
+  const hot = getHotUniverse();
+  const el = document.getElementById('universeList');
+  el.innerHTML = universeData.map(u => `
+    <div class="universe-card ${G.currentUniverse===u.id?'selected':''}" style="--u-color:${u.color};margin-bottom:8px;" onclick="selectUniverse('${u.id}')">
+      <div class="u-header">
+        <div class="u-title">${u.icon} ${u.name} ${u.id===hot.id?'🔥':''}</div>
+        <span class="u-badge" style="background:${u.color}22;color:${u.color};border:1px solid ${u.color}44">${u.ring}</span>
+      </div>
+      <div class="u-stats">
+        <div class="u-stat"><div class="s-val" style="color:${u.color}">×${u.mult.toFixed(1)}</div><div class="s-key">Multiplier</div></div>
+        <div class="u-stat"><div class="s-val">${u.stability}%</div><div class="s-key">Stability</div></div>
+        <div class="u-stat"><div class="s-val" style="color:var(--red)">+${u.inflation.toFixed(1)}%</div><div class="s-key">Inflation</div></div>
+        <div class="u-stat"><div class="s-val" style="color:var(--gold)">${u.resourceVal.toFixed(1)}x</div><div class="s-key">Res. Value</div></div>
+      </div>
+    </div>`).join('');
+
+  // Hot universe
+  document.getElementById('hotUniverse').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:32px;">${hot.icon}</span>
+      <div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:${hot.color}">${hot.name}</div>
+        <div style="font-size:12px;color:var(--text3)">Resource value: <span style="color:var(--gold)">${hot.resourceVal.toFixed(1)}× base</span></div>
+        <div style="font-size:12px;color:var(--text3)">Profit multiplier: <span style="color:var(--green)">×${hot.mult.toFixed(1)}</span></div>
+      </div>
+    </div>`;
+
+  // Collapse timers
+  const collapsing = universeData.filter(u=>u.collapseIn < 3600).sort((a,b)=>a.collapseIn-b.collapseIn);
+  document.getElementById('collapseTimers').innerHTML = collapsing.length ? collapsing.map(u=>`
+    <div class="collapse-timer">
+      <span class="t-name">${u.icon} ${u.name}</span>
+      <span class="t-time">${formatTime(u.collapseIn)}</span>
+    </div>`).join('') : '<div style="color:var(--text3);font-size:13px;padding:8px 0;">No universes collapsing soon ✅</div>';
+}
+renderUniverses();
+
+function selectUniverse(id) {
+  G.currentUniverse = id;
+  calcStats();
+  renderUniverses();
+  updateDisplays();
+  const u = universeData.find(x=>x.id===id);
+  showToast('🌍', 'Universe Selected: ' + u.name, `Multiplier: ×${u.mult.toFixed(1)}`);
+  saveGame();
+}
+
+function formatTime(secs) {
+  const h=Math.floor(secs/3600), m=Math.floor((secs%3600)/60), s=secs%60;
+  return h>0 ? `${h}h ${m}m` : `${m}m ${s}s`;
+}
+
+// Tick universe timers
+setInterval(()=>{
+  universeData.forEach(u => {
+    u.collapseIn = Math.max(0, u.collapseIn - 1);
+    if(u.collapseIn === 0) u.collapseIn = Math.floor(Math.random()*7200)+3600;
+    // Fluctuate values
+    u.resourceVal = Math.max(0.1, u.resourceVal + (Math.random()-0.49)*0.02);
+    u.stability = Math.max(5, Math.min(99, u.stability + (Math.random()-0.5)*0.2));
+    u.inflation = Math.max(0.1, u.inflation + (Math.random()-0.49)*0.05);
+  });
+  renderUniverses();
+  renderDashboard();
+  updateTicker();
+}, 1000);
+
+// ============================================================
+//  DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const hot = getHotUniverse();
+  const totalActive = universeData.length;
+  const avgInflation = (universeData.reduce((s,u)=>s+u.inflation,0)/universeData.length).toFixed(1);
+  const avgResource = (universeData.reduce((s,u)=>s+u.resourceVal,0)/universeData.length).toFixed(2);
+  const soonCollapse = universeData.filter(u=>u.collapseIn<1800).length;
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="panel"><div class="panel-title"><span class="dot"></span>ACTIVE UNIVERSES</div><div class="big-num accent">${totalActive}</div><div class="sub">All running live</div></div>
+    <div class="panel hot"><div class="panel-title"><span class="dot orange"></span>🔥 HOT UNIVERSE</div><div class="big-num orange">${hot.icon} ${hot.name}</div><div class="sub">×${hot.mult.toFixed(1)} multiplier</div></div>
+    <div class="panel"><div class="panel-title"><span class="dot gold"></span>AVG RESOURCE VALUE</div><div class="big-num gold">${avgResource}×</div><div class="sub">Avg inflation: +${avgInflation}%</div></div>
+    <div class="panel warn"><div class="panel-title"><span class="dot red"></span>⚠️ NEAR COLLAPSE</div><div class="big-num red">${soonCollapse}</div><div class="sub">Universes &lt;30 min away</div></div>
+  `;
+
+  document.getElementById('dashUniverses').innerHTML = universeData.map(u=>`
+    <div class="panel" style="margin-bottom:8px;padding:12px 16px;border-left:3px solid ${u.color};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:700;">${u.icon} ${u.name}</span>
+        <span style="font-size:11px;color:${u.stability>60?'var(--green)':u.stability>35?'var(--gold)':'var(--red)'};">${u.stability.toFixed(0)}% stable</span>
+      </div>
+      <div class="prog-bar"><div class="fill ${u.stability>60?'green':u.stability>35?'orange':'red'}" style="width:${u.stability.toFixed(0)}%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text3);">
+        <span>Inflation: <span style="color:var(--red);">+${u.inflation.toFixed(1)}%</span></span>
+        <span>Collapse: <span style="color:var(--accent);font-family:'Share Tech Mono',monospace;">${formatTime(u.collapseIn)}</span></span>
+      </div>
+    </div>`).join('');
+}
+renderDashboard();
+
+// Market feed
+const feedItems = [];
+function pushFeed(msg, color='var(--text2)') {
+  const now = new Date();
+  const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  feedItems.unshift({time, msg, color});
+  if(feedItems.length > 50) feedItems.pop();
+  const el = document.getElementById('marketFeed');
+  if(el) el.innerHTML = feedItems.map(f=>`
+    <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);white-space:nowrap;">${f.time}</span>
+      <span style="font-size:12px;color:${f.color};">${f.msg}</span>
+    </div>`).join('');
+}
+
+const feedMsgs = [
+  ()=>{const u=universeData[Math.floor(Math.random()*universeData.length)]; return [`${u.icon} ${u.name} resource value shifted to ${u.resourceVal.toFixed(2)}×`, u.resourceVal>1.5?'var(--green)':'var(--text2)'];},
+  ()=>{const u=getHotUniverse(); return [`🔥 HOT: ${u.name} is the most profitable right now`, 'var(--accent2)'];},
+  ()=>{const u=universeData.filter(x=>x.collapseIn<600)[0]; return u?[`⚠️ WARNING: ${u.name} collapses in ${formatTime(u.collapseIn)}!`,'var(--red)']:null;},
+  ()=>[`📈 Trade volume surged +${(Math.random()*15+5).toFixed(1)}% in last minute`, 'var(--green)'],
+  ()=>[`💹 Player NebulaTycoon just made ${fmt(Math.floor(Math.random()*500000+10000))} EC in Nebula Arc`, 'var(--gold)'],
+];
+
+setInterval(()=>{
+  const fn = feedMsgs[Math.floor(Math.random()*feedMsgs.length)];
+  const r = fn();
+  if(r) pushFeed(...r);
+}, 3000);
+pushFeed('🌌 Multiverse Trading Clicker is live!', 'var(--accent)');
+
+// ============================================================
+//  LEADERBOARD
+// ============================================================
+const LB_DATA = {
+  overall: [
+    {name:'NebulaTycoon',sub:'3,421 rebirths • Nebula Arc',amt:'4.2T EC',crown:'👑'},
+    {name:'VoidWalker99',sub:'2,100 rebirths • The Void',amt:'1.8T EC',crown:'🥈'},
+    {name:'SolarKing',sub:'1,800 rebirths • Solar Nexus',amt:'987B EC',crown:'🥉'},
+    {name:'CrystalMage',sub:'1,200 rebirths • Crystal Realm',amt:'420B EC',crown:''},
+    {name:'ChaosMaster',sub:'980 rebirths • Chaos Rift',amt:'210B EC',crown:''},
+    {name:'StarForge',sub:'750 rebirths • Alpha Prime',amt:'88B EC',crown:''},
+    {name:'DarkMatter_X',sub:'600 rebirths • The Void',amt:'42B EC',crown:''},
+    {name:'EnergyLord',sub:'440 rebirths • Solar Nexus',amt:'18B EC',crown:''},
+    {name:'QuantumLeap',sub:'320 rebirths • Nebula Arc',amt:'7.2B EC',crown:''},
+    {name:'AlphaPrime01',sub:'200 rebirths • Alpha Prime',amt:'3.1B EC',crown:''},
+  ],
+  universe: [
+    {name:'NebulaTycoon',sub:'💜 Nebula Arc champion',amt:'1.2T EC'},
+    {name:'SolarKing',sub:'☀️ Solar Nexus champion',amt:'890B EC'},
+    {name:'CrystalMage',sub:'💎 Crystal Realm champ',amt:'420B EC'},
+    {name:'VoidWalker99',sub:'⚫ The Void champion',amt:'210B EC'},
+    {name:'ChaosMaster',sub:'🔴 Chaos Rift champion',amt:'140B EC'},
+    {name:'AlphaPrime01',sub:'🌍 Alpha Prime champ',amt:'88B EC'},
+  ],
+  weekly: [
+    {name:'StarForge',sub:'Best week performance',amt:'+24.2B EC'},
+    {name:'QuantumLeap',sub:'+3,200 rebirths this wk',amt:'+8.1B EC'},
+    {name:'NebulaTycoon',sub:'Consistent grinder',amt:'+6.4B EC'},
+    {name:'DarkMatter_X',sub:'Efficiency trader',amt:'+4.2B EC'},
+    {name:'EnergyLord',sub:'Power grinder',amt:'+2.8B EC'},
+  ],
+  rebirth: [
+    {name:'SpeedRunner_X',sub:'World record holder',amt:'4m 12s'},
+    {name:'QuantumLeap',sub:'Optimized route',amt:'6m 38s'},
+    {name:'NebulaTycoon',sub:'Consistent speed',amt:'8m 05s'},
+    {name:'VoidWalker99',sub:'Strategic rebirth',amt:'9m 22s'},
+    {name:'ChaosMaster',sub:'Chaos method',amt:'11m 44s'},
+  ]
+};
+
+function lbTab(key, btn) {
+  document.querySelectorAll('.section-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const data = LB_DATA[key];
+  document.getElementById('lbContent').innerHTML = data.map((p,i)=>`
+    <div class="lb-row">
+      <div class="rank ${i===0?'r1':i===1?'r2':i===2?'r3':''}">${i+1}</div>
+      <div class="player"><div class="p-name">${p.name} ${i===0?'<span style="background:rgba(251,191,36,0.15);color:var(--gold);font-size:10px;padding:2px 8px;border-radius:3px;margin-left:6px;">MONTHLY CHAMPION</span>':''}</div><div class="p-sub">${p.sub}</div></div>
+      <div class="amount">${p.amt}</div>
+      ${p.crown?`<div class="crown">${p.crown}</div>`:''}
+    </div>`).join('');
+}
+setTimeout(()=>lbTab('overall',document.querySelector('#sec-leaderboard .tab-btn')),100);
+
+// ============================================================
+//  EVENTS
+// ============================================================
+const EVENTS = [
+  {type:'UNIVERSE OPENING', title:'Chaos Rift Mega Event', desc:'The Chaos Rift will generate 5× normal resources. High risk, extreme reward. Prepare your portfolio.', time:3*3600+1200, color:'var(--red)'},
+  {type:'DOUBLE TRADE WEEKEND', title:'Double Trade Weekend', desc:'All trade bonuses doubled for 48 hours. Best time to upgrade your passive income generators.', time:24*3600+3600, color:'var(--gold)'},
+  {type:'UNIVERSE CRASH', title:'Nebula Arc Instability', desc:'Warning: Nebula Arc approaching critical instability. Players with assets there may need to evacuate soon.', time:45*60, color:'var(--accent2)'},
+  {type:'SPECIAL EVENT', title:'Rebirth Bonus Hour', desc:'For 1 hour, all rebirths grant 3× the normal permanent bonus. Plan your timing carefully.', time:6*3600+900, color:'var(--accent3)'},
+  {type:'COMMUNITY EVENT', title:'Trading Tournament', desc:'Top 10 traders this week get permanent profile badges and in-game titles. Competition is fierce.', time:2*24*3600, color:'var(--accent)'},
+];
+
+const VOTE_OPTIONS = [
+  {name:'Plasma Storm Universe',desc:'High energy, unstable, massive rewards',votes:247,icon:'⚡'},
+  {name:'Ancient Crystal Realm',desc:'Stable, long-term wealth building',votes:189,icon:'🔮'},
+  {name:'Void Echo Dimension',desc:'Mysterious, unknown multipliers',votes:156,icon:'🌑'},
+  {name:'Neon Cyber World',desc:'Fast-paced, high inflation',votes:421,icon:'🌆'},
+];
+
+let totalVotes = VOTE_OPTIONS.reduce((s,v)=>s+v.votes,0);
+let userVoted = null;
+
+function renderEvents() {
+  document.getElementById('eventList').innerHTML = EVENTS.map(e=>`
+    <div class="event-card" style="--e-color:${e.color};margin-bottom:12px;">
+      <div class="e-type">${e.type}</div>
+      <div class="e-title">${e.title}</div>
+      <div class="e-desc">${e.desc}</div>
+      <div class="e-timer">
+        <span class="t-label">STARTS IN:</span>
+        <span class="t-val" data-evt-time="${e.time}">${formatTime(e.time)}</span>
+      </div>
+    </div>`).join('');
+  renderVotes();
+}
+
+function renderVotes() {
+  const totalV = VOTE_OPTIONS.reduce((s,v)=>s+v.votes,0);
+  document.getElementById('totalVotes').textContent = totalV.toLocaleString();
+  document.getElementById('voteOptions').innerHTML = VOTE_OPTIONS.map((v,i)=>`
+    <div class="vote-option ${userVoted===i?'voted':''}" onclick="castVote(${i})">
+      <div class="v-top">
+        <span class="v-name">${v.icon} ${v.name}</span>
+        <span class="v-pct">${((v.votes/totalV)*100).toFixed(1)}%</span>
+      </div>
+      <div class="prog-bar"><div class="fill blue" style="width:${((v.votes/totalV)*100).toFixed(1)}%"></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">${v.desc} • ${v.votes.toLocaleString()} votes</div>
+    </div>`).join('');
+}
+
+function castVote(i) {
+  if(userVoted !== null) { showToast('⚠️','Already voted!','You can vote again next week'); return; }
+  VOTE_OPTIONS[i].votes++;
+  userVoted = i;
+  renderVotes();
+  showToast('✅','Vote cast!', VOTE_OPTIONS[i].icon + ' ' + VOTE_OPTIONS[i].name + ' gains your vote');
+}
+
+// Event timers
+setInterval(()=>{
+  EVENTS.forEach(e=>{ if(e.time>0) e.time--; });
+  document.querySelectorAll('[data-evt-time]').forEach((el,i)=>{
+    if(EVENTS[i]) el.textContent = formatTime(EVENTS[i].time);
+  });
+}, 1000);
+
+// ============================================================
+//  CHARTS
+// ============================================================
+let chartsInited = false;
+function initCharts() {
+  if(chartsInited) return;
+  chartsInited = true;
+  const co = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#64748b',font:{size:9}}},y:{display:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#64748b',font:{size:9}}}}};
+  const labels = Array.from({length:20},(_,i)=>i+'s');
+
+  // Energy
+  const ec = new Chart(document.getElementById('energyChart'),{type:'line',data:{labels,datasets:[{data:Array.from({length:20},()=>Math.random()*100+50),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.05)',tension:0.4,fill:true,pointRadius:0}]},options:{...co}});
+
+  // Stability
+  const st = new Chart(document.getElementById('stabilityChart'),{type:'line',data:{labels,datasets:UNIVERSES.slice(0,3).map((u,i)=>({label:u.name,data:Array.from({length:20},()=>Math.random()*40+40),borderColor:u.color,backgroundColor:'transparent',tension:0.4,pointRadius:0}))},options:{...co,plugins:{legend:{display:true,labels:{color:'#94a3b8',font:{size:10},boxWidth:10}}}}});
+
+  // Trade volume
+  const tv = new Chart(document.getElementById('tradeChart'),{type:'bar',data:{labels,datasets:[{data:Array.from({length:20},()=>Math.random()*1000+200),backgroundColor:Array.from({length:20},()=>'rgba(16,185,129,0.4)'),borderColor:'#10b981',borderWidth:1}]},options:{...co}});
+
+  // Inflation
+  const inf = new Chart(document.getElementById('inflationChart'),{type:'bar',data:{labels:UNIVERSES.map(u=>u.name),datasets:[{data:UNIVERSES.map(u=>u.inflation),backgroundColor:UNIVERSES.map(u=>u.color+'66'),borderColor:UNIVERSES.map(u=>u.color),borderWidth:2}]},options:{...co,indexAxis:'y'}});
+
+  // Crash
+  const cr = new Chart(document.getElementById('crashChart'),{type:'line',data:{labels,datasets:UNIVERSES.filter(u=>u.id!=='VOID').map(u=>({label:u.name,data:Array.from({length:20},()=>(100-u.stability)/100*100+Math.random()*10),borderColor:u.color,backgroundColor:'transparent',tension:0.4,pointRadius:0}))},options:{...co,plugins:{legend:{display:true,labels:{color:'#94a3b8',font:{size:10},boxWidth:10}}}}});
+
+  // Live chart updates
+  setInterval(()=>{
+    [ec,tv].forEach(ch=>{
+      ch.data.datasets.forEach(ds=>{
+        ds.data.push(Math.random()*100+50);
+        ds.data.shift();
+      });
+      ch.update('none');
+    });
+  },2000);
+}
+
+// ============================================================
+//  DAILY REWARDS
+// ============================================================
+const DAILY_REWARDS = [
+  {icon:'💎',val:'500 EC',day:1},
+  {icon:'⚡',val:'2x Boost',day:2},
+  {icon:'🔩',val:'1,000 EC',day:3},
+  {icon:'🐉',val:'Pet Boost',day:4},
+  {icon:'💰',val:'5,000 EC',day:5},
+  {icon:'🌀',val:'10× Spin',day:6},
+  {icon:'🏆',val:'JACKPOT!',day:7},
+];
+
+function checkDailyReset() {
+  const today = new Date().toDateString();
+  if(G.lastClaimDate !== today) {
+    G.dailyClaimed = false;
+    document.getElementById('rewardNotif').style.display = '';
+  }
+  if(G.lastSpinDate !== today) G.spinUsed = false;
+}
+checkDailyReset();
+
+function renderRewards() {
+  checkDailyReset();
+  const today = new Date().toDateString();
+  const streakDay = (G.rebirths % 7) + 1;
+  document.getElementById('rewardCalendar').innerHTML = DAILY_REWARDS.map((r,i)=>{
+    const dayNum = i+1;
+    const isClaimed = dayNum < streakDay;
+    const isToday = dayNum === streakDay && !G.dailyClaimed;
+    const isTodayClaimed = dayNum === streakDay && G.dailyClaimed;
+    return `<div class="day-box ${isClaimed||isTodayClaimed?'claimed':isToday?'today':'future'}" ${isToday?'onclick="claimDaily()"':''} title="${r.val}">
+      <div class="d-num">DAY ${r.day}</div>
+      <div class="d-icon">${r.icon}</div>
+      <div class="d-val">${r.val}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('claimDayBtn').disabled = G.dailyClaimed;
+  document.getElementById('claimMsg').textContent = G.dailyClaimed ? '✅ Come back tomorrow for your next reward!' : '';
+}
+
+function claimDaily() {
+  checkDailyReset();
+  if(G.dailyClaimed) return;
+  G.dailyClaimed = true;
+  G.lastClaimDate = new Date().toDateString();
+  const reward = DAILY_REWARDS[(G.rebirths % 7)];
+  G.ec += 1000;
+  G.allTimeEC += 1000;
+  document.getElementById('rewardNotif').style.display = 'none';
+  renderRewards();
+  updateDisplays();
+  showToast('🎁', 'Daily Reward Claimed!', reward.icon + ' ' + reward.val + ' added to your account');
+  saveGame();
+}
+
+// Spin wheel
+const WHEEL_PRIZES = [
+  {label:'500 EC',color:'#00d4ff',ec:500},
+  {label:'MISS',color:'#374151',ec:0},
+  {label:'2000 EC',color:'#fbbf24',ec:2000},
+  {label:'×2 Click',color:'#7c3aed',ec:0,boost:'click'},
+  {label:'100 EC',color:'#10b981',ec:100},
+  {label:'MISS',color:'#374151',ec:0},
+  {label:'10000 EC',color:'#ef4444',ec:10000},
+  {label:'×1.5 Sec',color:'#f59e0b',ec:0,boost:'passive'},
+];
+
+let spinAngle = 0;
+let spinAnimId = null;
+
+function drawWheel() {
+  const c = document.getElementById('spinCanvas');
+  const ctx = c.getContext('2d');
+  const cx = c.width/2, cy = c.height/2, r = cx-10;
+  ctx.clearRect(0,0,c.width,c.height);
+  const sliceAngle = (Math.PI*2)/WHEEL_PRIZES.length;
+  WHEEL_PRIZES.forEach((p,i)=>{
+    const start = spinAngle + i*sliceAngle;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,start+sliceAngle);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.strokeStyle = '#0a0f1e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(start+sliceAngle/2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Rajdhani,sans-serif';
+    ctx.fillText(p.label, r-8, 4);
+    ctx.restore();
+  });
+}
+drawWheel();
+
+function spinWheel() {
+  checkDailyReset();
+  if(G.spinUsed) { showToast('⚠️','Already spun today!','Come back tomorrow!'); return; }
+  G.spinUsed = true;
+  G.lastSpinDate = new Date().toDateString();
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('spinResult').textContent = 'Spinning...';
+
+  const extraSpins = Math.PI*2 * (5 + Math.floor(Math.random()*5));
+  const randStop = Math.random()*Math.PI*2;
+  const totalSpin = extraSpins + randStop;
+  const startAngle = spinAngle;
+  const duration = 3000;
+  const startTime = performance.now();
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed/duration, 1);
+    const ease = 1 - Math.pow(1-t,4);
+    spinAngle = startAngle + totalSpin * ease;
+    drawWheel();
+    if(t < 1) { spinAnimId = requestAnimationFrame(animate); return; }
+    // Determine result
+    const normalAngle = ((spinAngle % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+    const sliceAngle = (Math.PI*2)/WHEEL_PRIZES.length;
+    // pointer is at top (3*PI/2 from 0)
+    const pointerAngle = Math.PI*1.5;
+    const spinedAt = (pointerAngle - normalAngle + Math.PI*2) % (Math.PI*2);
+    const idx = Math.floor(spinedAt / sliceAngle) % WHEEL_PRIZES.length;
+    const prize = WHEEL_PRIZES[idx];
+    if(prize.ec > 0) {
+      G.ec += prize.ec;
+      G.allTimeEC += prize.ec;
+      updateDisplays();
+    }
+    document.getElementById('spinResult').innerHTML = `<span style="color:${prize.color}">🎉 ${prize.label}!</span>`;
+    showToast('🎡','Spin Result!', prize.ec>0 ? `+${fmt(prize.ec)} EC added!` : (prize.boost?'Boost activated!':'Better luck next time!'));
+    saveGame();
+  }
+  requestAnimationFrame(animate);
+}
+
+// Promo codes
+const PROMO_CODES = {
+  'LAUNCH2024': {ec:5000, msg:'Launch bonus: +5,000 EC!'},
+  'UNIVERSE': {ec:10000, msg:'Universe code: +10,000 EC!'},
+  'TRADER': {ec:2500, msg:'Trader code: +2,500 EC!'},
+  'MULTIVERSE': {ec:25000, msg:'Multiverse master: +25,000 EC!'},
+  'REBIRTH': {ec:0, rebirthBoost:0.1, msg:'Rebirth bonus: +0.1 permanent rebirth mult!'},
+};
+
+function redeemPromo() {
+  const code = document.getElementById('promoInput').value.trim().toUpperCase();
+  const el = document.getElementById('promoMsg');
+  if(!code) return;
+  if(G.promoUsed.includes(code)) { el.style.color='var(--red)'; el.textContent='❌ Code already redeemed!'; return; }
+  const promo = PROMO_CODES[code];
+  if(!promo) { el.style.color='var(--red)'; el.textContent='❌ Invalid code.'; return; }
+  G.promoUsed.push(code);
+  if(promo.ec) { G.ec += promo.ec; G.allTimeEC += promo.ec; updateDisplays(); }
+  if(promo.rebirthBoost) { G.rebirthMult += promo.rebirthBoost; updateDisplays(); }
+  el.style.color='var(--green)'; el.textContent='✅ ' + promo.msg;
+  document.getElementById('promoInput').value = '';
+  showToast('🔑','Promo Redeemed!', promo.msg);
+  saveGame();
+}
+
+// ============================================================
+//  HISTORY
+// ============================================================
+const HISTORY_EVENTS = [
+  {date:'Day 42',icon:'💥',title:'The Great Nebula Collapse of Era 3',detail:'After 72 hours of instability, Nebula Arc imploded. 2.4 trillion EC lost.',impact:'Market impact: -78% resource value for 6 hours'},
+  {date:'Day 38',icon:'🐳',title:'VoidWalker99 Whales the Market',detail:'Single player invested 890B EC in Solar Nexus, causing 340% inflation spike.',impact:'Market impact: +340% Solar Nexus inflation for 2 hours'},
+  {date:'Day 31',icon:'🌟',title:'First Trillion EC Milestone',detail:'NebulaTycoon became the first player to surpass 1 Trillion EC total wealth.',impact:'Achievement unlocked server-wide'},
+  {date:'Day 24',icon:'⚡',title:'Chaos Rift Discovery',detail:'Players exploring deep void coordinates discovered a new unstable universe with extreme multipliers.',impact:'Chaos Rift added to active universe pool'},
+  {date:'Day 17',icon:'🤝',title:'The Crystal Cartel',detail:'Top 10 Crystal Realm players coordinated to manipulate resource prices, netting 50B EC each.',impact:'Anti-manipulation rules implemented'},
+  {date:'Day 12',icon:'💀',title:'Alpha Prime Near-Death Event',detail:'A cascade of rebirths destabilized Alpha Prime. Stability dropped to 8% for 3 hours.',impact:'Emergency stabilization event triggered'},
+  {date:'Day 5',icon:'🎉',title:'Server Launch Day',detail:'Multiverse Trading Clicker went live. 10,000 players in first 24 hours.',impact:'Origin of the multiverse economy'},
+];
+
+const ALL_TIME_RICH = [
+  {name:'NebulaTycoon',peak:'4.2T EC',era:'Era 4',univ:'Nebula Arc'},
+  {name:'VoidWalker99',peak:'1.8T EC',era:'Era 3',univ:'The Void'},
+  {name:'SolarKing',peak:'1.2T EC',era:'Era 4',univ:'Solar Nexus'},
+  {name:'CrystalMage',peak:'890B EC',era:'Era 2',univ:'Crystal Realm'},
+  {name:'ChaosMaster',peak:'420B EC',era:'Era 3',univ:'Chaos Rift'},
+];
+
+const MANIPULATIONS = [
+  {name:'VoidWalker99',action:'Solar Nexus inflation bomb',gain:'+890B EC',date:'Day 38'},
+  {name:'CrystalCartel',action:'Price fixing in Crystal Realm',gain:'+500B EC',date:'Day 17'},
+  {name:'NebulaTycoon',action:'Mass rebirth to destabilize market',gain:'+220B EC',date:'Day 29'},
+];
+
+function renderHistory() {
+  document.getElementById('historyLog').innerHTML = HISTORY_EVENTS.map(h=>`
+    <div class="history-event">
+      <div class="h-date">${h.date}</div>
+      <div class="h-icon">${h.icon}</div>
+      <div class="h-content">
+        <div class="h-title">${h.title}</div>
+        <div class="h-detail">${h.detail}</div>
+        <div class="h-impact">${h.impact}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('allTimeRich').innerHTML = ALL_TIME_RICH.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:900;color:${i===0?'var(--gold)':i===1?'#94a3b8':i===2?'#c97c40':'var(--text3)'};">#${i+1}</span>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:700;">${p.name}</div><div style="font-size:11px;color:var(--text3);">${p.univ} • ${p.era}</div></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--gold);">${p.peak}</div>
+    </div>`).join('');
+
+  document.getElementById('manipLog').innerHTML = MANIPULATIONS.map(m=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:13px;font-weight:700;">${m.name}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--red);">${m.gain}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);">${m.action}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${m.date}</div>
+    </div>`).join('');
+}
+renderHistory();
+
+// ============================================================
+//  PROFILES
+// ============================================================
+const PROFILES = [
+  {name:'NebulaTycoon',title:'Multiverse Billionaire',avatar:'💎',wealth:'4.2T EC',universe:'Nebula Arc',tradeSuccess:'94.2%',rebirths:3421,achievements:['🏆 Richest Ever','⭕ 1000 Rebirths','🔥 Market Master','💜 Nebula King']},
+  {name:'VoidWalker99',title:'Void Merchant',avatar:'⚫',wealth:'1.8T EC',universe:'The Void',tradeSuccess:'88.1%',rebirths:2100,achievements:['🥈 Top 3 Player','⚫ Void Specialist','🐳 Whale Alert']},
+  {name:'You',title:'Rising Trader',avatar:'⚡',wealth:fmt(G.ec)+' EC',universe:G.currentUniverse,tradeSuccess:((G.totalClicks>0?Math.min(99,(G.rebirths/Math.max(1,G.rebirths+1))*100+70):50)).toFixed(1)+'%',rebirths:G.rebirths,achievements:G.rebirths>0?['⭕ First Rebirth']:['🌱 New Trader']},
+];
+
+let currentProfile = PROFILES[2];
+
+function searchProfile() {
+  const q = document.getElementById('profileSearch').value.trim().toLowerCase();
+  currentProfile = PROFILES.find(p=>p.name.toLowerCase()===q) || currentProfile;
+  renderProfile();
+}
+
+function renderProfile() {
+  const p = currentProfile;
+  document.getElementById('profileCard').innerHTML = `
+    <div class="profile-avatar">${p.avatar}</div>
+    <div class="profile-name">${p.name}</div>
+    <div class="profile-title">${p.title}</div>
+    <div class="stat-row"><span class="s-key">Total Wealth</span><span class="s-val" style="color:var(--gold);">${p.wealth}</span></div>
+    <div class="stat-row"><span class="s-key">Favorite Universe</span><span class="s-val">${p.universe}</span></div>
+    <div class="stat-row"><span class="s-key">Trade Success Rate</span><span class="s-val" style="color:var(--green);">${p.tradeSuccess}</span></div>
+    <div class="stat-row"><span class="s-key">Rebirth Count</span><span class="s-val">${p.rebirths.toLocaleString()}</span></div>
+  `;
+  document.getElementById('achievementList').innerHTML = `<div style="display:flex;flex-wrap:wrap;">` +
+    p.achievements.map(a=>`<span class="achievement" style="--a-border:rgba(251,191,36,0.3);--a-bg:rgba(251,191,36,0.08);--a-color:var(--gold);">${a}</span>`).join('') +
+    `</div>`;
+
+  // Profile chart
+  const pCtx = document.getElementById('profileChart');
+  if(pCtx._chartInstance) pCtx._chartInstance.destroy();
+  pCtx._chartInstance = new Chart(pCtx,{type:'line',data:{
+    labels:['Wk1','Wk2','Wk3','Wk4'],
+    datasets:[{label:'Wealth',data:[10,100,1000,10000].map(x=>x*(Math.random()+0.5)),borderColor:'var(--gold)',backgroundColor:'rgba(251,191,36,0.05)',fill:true,tension:0.4}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}}}}});
+}
+renderProfile();
+
+// ============================================================
+//  STRATEGY
+// ============================================================
+const STRATEGIES = {
+  best: [
+    {title:'The Chaos Exploit',author:'ChaosMaster',body:'Enter Chaos Rift when stability is between 30-40%. The risk/reward ratio peaks here. Use 3+ auto-clickers and rebirth as soon as you hit 500K EC. This compounds faster than any other strategy.',tags:['Chaos Rift','Advanced','High Risk'],likes:1247},
+    {title:'Safe Starter Guide',author:'AlphaPrime01',body:'New to the game? Stay in Alpha Prime for your first 3 rebirths. Focus on buying auto-clickers first — passive income beats click power at this stage. Rebirth at exactly 100K EC for optimal permanent bonus.',tags:['Beginner','Alpha Prime','Safe'],likes:892},
+    {title:'Crystal+Void Loop',author:'CrystalMage',body:'Alternate between Crystal Realm (stable growth) and The Void (low inflation). This hedges against market crashes. Never keep all EC in one universe. Spread risk.',tags:['Intermediate','Multi-Universe'],likes:654},
+  ],
+  tips: [
+    {title:'Rebirth Timing',author:'SpeedRunner_X',body:'Never rebirth below 100K EC. The sweet spot is 150-200K. The permanent multiplier formula means early rebirths give diminishing returns. Wait for the bonus meter to hit 80%+.',tags:['Rebirth','Optimization'],likes:2104},
+    {title:'Auto-Click First',author:'EnergyLord',body:'Always buy at least 5 Auto Clickers before anything else. The compounding effect of passive income beats manual clicking by Day 3. Passive > Active at all times.',tags:['Beginner Tip','Economy'],likes:1876},
+    {title:'Avoid Inflation Traps',author:'QuantumLeap',body:'Universes with >10% inflation are traps for beginners. Your EC buys less per second than you earn it. Only experienced players with high rebirth multipliers can profit from Chaos Rift.',tags:['Economy','Warning'],likes:1422},
+  ],
+  guides: [
+    {title:'Complete Beginner to Billionaire',author:'NebulaTycoon',body:'Full guide: Start Alpha → 5 rebirths → Move to Crystal Realm → 10 more rebirths → Unlock Nebula Arc → Use the UNIVERSE promo code → 50 rebirths → Enter Chaos Rift. This is the proven path.',tags:['Full Guide','Comprehensive'],likes:5621},
+    {title:'Universe Collapse Profiting',author:'VoidWalker99',body:'When a universe is 10-15 minutes from collapsing, resource values spike 200-400%. Enter at 20 min out, extract at 5 min remaining. This is how pros make billions fast.',tags:['Advanced','Collapse','Timing'],likes:3204},
+  ]
+};
+
+function stTab(key, btn) {
+  document.querySelectorAll('#sec-strategy .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('strategyContent').innerHTML = STRATEGIES[key].map(s=>`
+    <div class="strategy-card">
+      <div class="s-header">
+        <div><div class="s-title">${s.title}</div><div class="s-author">By ${s.author}</div></div>
+      </div>
+      <div class="s-body">${s.body}</div>
+      <div class="s-footer">
+        <span class="s-likes" onclick="this.textContent='❤️ '+(parseInt(this.textContent.replace(/\D/g,''))+1).toLocaleString()">❤️ ${s.likes.toLocaleString()}</span>
+        ${s.tags.map(t=>`<span class="s-tag">${t}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+setTimeout(()=>stTab('best',document.querySelector('#sec-strategy .tab-btn')),100);
+
+// ============================================================
+//  TICKER
+// ============================================================
+function updateTicker() {
+  const items = universeData.map(u=>`
+    <div class="marquee-item">
+      <span>${u.icon} ${u.name}</span>
+      <span class="${u.resourceVal>1.5?'m-up':'m-down'}">${u.resourceVal>1.5?'▲':'▼'} ${u.resourceVal.toFixed(2)}×</span>
+      <span>+${u.inflation.toFixed(1)}% inf</span>
+    </div>`).join('');
+  // Duplicate for seamless loop
+  const t = document.getElementById('ticker');
+  t.innerHTML = items+items;
+}
+updateTicker();
+
+// ============================================================
+//  TOAST
+// ============================================================
+let toastTimer;
+function showToast(icon, text, sub='') {
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastSub').textContent = sub;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+//  NAV / SECTIONS
+// ============================================================
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  // Find and activate nav button
+  const btns = document.querySelectorAll('nav button');
+  btns.forEach(b=>{ if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'")) b.classList.add('active'); });
+  if(id==='charts') setTimeout(initCharts,100);
+  if(id==='rewards') renderRewards();
+  if(id==='events') renderEvents();
+}
+
+// ============================================================
+//  WEEKLY RESET TIMER
+// ============================================================
+function updateWeeklyTimer() {
+  const now = new Date();
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + (8 - now.getDay()) % 7 || 7);
+  nextMonday.setHours(0,0,0,0);
+  const diff = Math.max(0, Math.floor((nextMonday-now)/1000));
+  const d=Math.floor(diff/86400), h=Math.floor((diff%86400)/3600), m=Math.floor((diff%3600)/60);
+  const el = document.getElementById('weeklyReset');
+  if(el) el.textContent = `${d}d ${h}h ${m}m`;
+}
+setInterval(updateWeeklyTimer, 60000);
+updateWeeklyTimer();
+
+// Initial load
+pushFeed('🌌 Welcome to Multiverse Trading Clicker! Start clicking to harvest Energy Crystals.', 'var(--accent)');
+pushFeed('💡 TIP: Enter promo code LAUNCH2024 in the Rewards section for free EC!', 'var(--gold)');
+</script>
+</body>
+</html>
